@@ -26,4 +26,4 @@ MODEL = env_config.gigachat_model.get_secret_value()
 HOST = env_config.host.get_secret_value()
 PORT = env_config.port.get_secret_value()
 URLS_LIST_FILE_NAME = env_config.urls_list_file_name.get_secret_value()
-CORS_ORIGINS = [env_config.cors_origins.get_secret_value()]
+CORS_ORIGINS = env_config.cors_origins.get_secret_value().split(",")
