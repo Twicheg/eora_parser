@@ -13,9 +13,11 @@ const client_id = getCookieByName("client_id");
 
 var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
 var messages = document.getElementById('chat');
+var submit_button = document.getElementById("submit_bottom")
 
 ws.onmessage = function (event) {
     var message = document.createElement('p');
+    var text = document.getElementById("messageText")
     var content = event.data;
     message.style.color = 'blue';
     message.style.textAlign = "start";
@@ -26,6 +28,8 @@ ws.onmessage = function (event) {
         top: messages.scrollHeight,
         behavior: 'instant'
     });
+    text.disabled = false;
+    submit_button.disabled = false;
 };
 
 function sendMessage(event) {
@@ -41,5 +45,7 @@ function sendMessage(event) {
     });
     ws.send(text.value);
     text.value = '';
+    text.disabled = true;
+    submit_button.disabled=true;
     event.preventDefault()
 }
