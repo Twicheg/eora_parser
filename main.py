@@ -1,10 +1,8 @@
 import config
 import uvicorn
-import logging
 import pytest
 
 config.configure_logging()
-logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     pytest.main()

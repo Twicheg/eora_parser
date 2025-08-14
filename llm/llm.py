@@ -1,10 +1,11 @@
 import logging
+import os.path
 import re
 from langchain_gigachat.chat_models.gigachat import GigaChat
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
-from config import LLM_TOKEN, URLS_LIST_FILE_NAME, MAX_TOKENS, MODEL
+from config import LLM_TOKEN, URLS_LIST_FILE_NAME, MAX_TOKENS, MODEL, PROJECT_PATH, PROMPT_FILE
 from httpx import ConnectError
 from gigachat.exceptions import ResponseError
 from langchain.schema.messages import AIMessage
@@ -12,6 +13,7 @@ from langgraph.errors import GraphRecursionError
 from functools import wraps
 
 logger = logging.getLogger(__name__)
+
 
 class LLM:
     model: GigaChat = None
@@ -29,23 +31,29 @@ class LLM:
                                  timeout=60)
         if not cls.prompt:
             cls.prompt = ChatPromptTemplate.from_messages(
-                [("system", "Твоя задача - отвечать на вопросы. Получи ссылки из функции get_links."
-                            "Ответ должен быть результатом парсинга списка предоставленных тебе страниц."
-                            "Ответы составляй ТОЛЬКО с предоставленных тебе станиц."
-                            "В конце каждого ответа добавляй ссылку из списка, на основе информации которой ты отвечал."
-                            ""),
-                 ("placeholder", "{messages}"), ])
+                [("system", cls.get_prompt()),
+                ("placeholder", "{messages}"), ])
         if not cls.instance:
             cls.instance = super().__new__(cls)
         return cls.instance
+
+    @staticmethod
+    def get_prompt() -> str:
+        """Get base prompt"""
+        try:
+            with open(os.path.join(PROJECT_PATH, PROMPT_FILE), 'r', encoding='utf-8') as f:
+                return ''.join([i.rstrip() for i in f.readlines()])
+        except FileNotFoundError as e:
+            logger.error("file not found, llm.llm.get_prompt", exc_info=e)
+            return ""
 
     @staticmethod
     @tool
     def get_links() -> str:
         """Получает список ссылок, которые нужно использовать."""
         try:
-            with open(URLS_LIST_FILE_NAME, 'r', encoding='utf-8') as f:
-                return ''.join(f.readlines())
+            with open(os.path.join(PROJECT_PATH, URLS_LIST_FILE_NAME), 'r', encoding='utf-8') as f:
+                return ''.join([i.rstrip() for i in f.readlines()])
         except FileNotFoundError as e:
             logger.error("file not found, llm.llm.get_links()", exc_info=e)
             return ""
@@ -53,7 +61,6 @@ class LLM:
     @staticmethod
     def html_form(disable=False):
         """Transform to html"""
-
         def wrapper(f):
             @wraps(f)
             async def wrapped(*args, **kwargs):
@@ -65,9 +72,7 @@ class LLM:
                     result = result.replace(i, f"<a href={i}>{i}</a>")
                 result = result.replace("\n", "<br>")
                 return result
-
             return wrapped
-
         return wrapper
 
     @html_form(disable=False)
@@ -84,7 +89,7 @@ class LLM:
         except (ResponseError, ConnectError) as e:
             logger.error("something went wrong, llm.llm.llm_request()", exc_info=e)
             return "Что-то пошло не так, попробуйте позже."
-        except TypeError as e: # если вернется None
+        except TypeError as e:  # если вернется None
             logger.error("404 model not found, llm.llm.llm_request()", exc_info=e)
             return "LLModel not found"
         except GraphRecursionError as e:
