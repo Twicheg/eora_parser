@@ -1,6 +1,8 @@
+import logging
 from fastapi import WebSocket, WebSocketDisconnect
 from llm.llm import LLM
 
+logger = logging.getLogger(__name__)
 
 async def dialog_with_llm(websocket: WebSocket):
     await websocket.accept()
@@ -11,4 +13,4 @@ async def dialog_with_llm(websocket: WebSocket):
             await websocket.send_text(answer)
 
     except WebSocketDisconnect:
-        print('ws disconnect')
+        logger.info("ws disconnect")
