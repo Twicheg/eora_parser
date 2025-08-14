@@ -15,7 +15,7 @@ def get_root_path():
     return os.path.abspath(os.path.dirname(sys.modules["__main__"].__name__))
 
 PROJECT_PATH = get_root_path()
-os.path.join(PROJECT_PATH, ".env")
+
 class Settings(BaseSettings):
     gigachat_llm_token: SecretStr
     gigachat_max_tokens: SecretStr
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     prompt_file: SecretStr
     urls_list_file_name: SecretStr
     cors_origins: SecretStr
-    model_config = SettingsConfigDict(env_file=os.path.join(PROJECT_PATH, ".env"), env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=f"{PROJECT_PATH}/.env", env_file_encoding="utf-8")
 
 env_config = Settings()
 LLM_TOKEN = env_config.gigachat_llm_token.get_secret_value()
