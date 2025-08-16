@@ -1,6 +1,5 @@
 import logging
 import os.path
-import re
 from langchain_gigachat.chat_models.gigachat import GigaChat
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
@@ -10,7 +9,7 @@ from httpx import ConnectError
 from gigachat.exceptions import ResponseError
 from langchain.schema.messages import AIMessage
 from langgraph.errors import GraphRecursionError
-from functools import wraps
+from web_api.services import HtmlSupport
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class LLM:
         """Get base prompt"""
         try:
             with open(os.path.join(PROJECT_PATH, PROMPT_FILE), 'r', encoding='utf-8') as f:
-                return ''.join([i.rstrip() for i in f.readlines()])
+                return ' '.join([i.rstrip() for i in f.readlines()])
         except FileNotFoundError as e:
             logger.error("file not found, llm.llm.get_prompt", exc_info=e)
             return ""
@@ -53,29 +52,13 @@ class LLM:
         """Получает список ссылок, которые нужно использовать."""
         try:
             with open(os.path.join(PROJECT_PATH, URLS_LIST_FILE_NAME), 'r', encoding='utf-8') as f:
-                return ''.join([i.rstrip() for i in f.readlines()])
+                return ' '.join([i.rstrip() for i in f.readlines()])
         except FileNotFoundError as e:
             logger.error("file not found, llm.llm.get_links()", exc_info=e)
             return ""
 
-    @staticmethod
-    def html_form(disable=False):
-        """Transform to html"""
-        def wrapper(f):
-            @wraps(f)
-            async def wrapped(*args, **kwargs):
-                if disable:
-                    return await f(*args, **kwargs)
-
-                result = await f(*args, **kwargs)
-                for i in re.findall(r"https://\S+", result):
-                    result = result.replace(i, f"<a href={i}>{i}</a>")
-                result = result.replace("\n", "<br>")
-                return result
-            return wrapped
-        return wrapper
-
-    @html_form(disable=False)
+    @HtmlSupport.replace_n()
+    @HtmlSupport.set_links()
     async def llm_request(self, request: str) -> str:
         """Запрос/Ответ Gigachat"""
         try:
