@@ -29,7 +29,7 @@ class LLM:
                                  profanity_check=False,
                                  streaming=False,
                                  max_tokens=int(MAX_TOKENS),
-                                 timeout=60)
+                                 )
         if not cls.prompt:
             cls.prompt = ChatPromptTemplate.from_messages(
                 [("system", cls.get_prompt()),
