@@ -26,6 +26,8 @@ class HtmlSupport:
                     return await f(*args, **kwargs)
                 result = await f(*args, **kwargs)
                 for link in re.findall(r"https://\S+", result):
+                    if link.endswith(")"):
+                        link = link[:-1]
                     result = result.replace(link, f" <a href={link}>{link}</a> ")
                 return result
             return wrapped

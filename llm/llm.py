@@ -9,6 +9,7 @@ from httpx import ConnectError
 from gigachat.exceptions import ResponseError
 from langchain.schema.messages import AIMessage
 from langgraph.errors import GraphRecursionError
+from langgraph.graph.state import CompiledStateGraph
 from web_api.services import HtmlSupport
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 class LLM:
     model: GigaChat = None
     prompt: ChatPromptTemplate = None
+    agent: CompiledStateGraph = None
     instance = None
 
     def __new__(cls, *args, **kwargs):
@@ -31,9 +33,11 @@ class LLM:
         if not cls.prompt:
             cls.prompt = ChatPromptTemplate.from_messages(
                 [("system", cls.get_prompt()),
-                ("placeholder", "{messages}"), ])
+                 ("placeholder", "{messages}"), ])
         if not cls.instance:
             cls.instance = super().__new__(cls)
+        if not cls.agent:
+            cls.agent = create_react_agent(model=cls.model, tools=[cls.get_links], prompt=cls.prompt)
         return cls.instance
 
     @staticmethod
@@ -62,8 +66,7 @@ class LLM:
     async def llm_request(self, request: str) -> str:
         """Запрос/Ответ Gigachat"""
         try:
-            agent = create_react_agent(model=self.model, tools=[self.get_links], prompt=self.prompt)
-            answer = await agent.ainvoke(input={"messages": [{"role": "user", "content": request}]})
+            answer = await self.agent.ainvoke(input={"messages": [{"role": "user", "content": request}]})
             for chunk in answer.get("messages"):
                 if isinstance(chunk, AIMessage) and chunk.content:
                     return chunk.content
